@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+# Google Drive HTML exports — replaced by built-in clean tables
+Heatoppsett SM24 - Google Disk.html
+Heatoppsett SM24 - Google Disk_files/
+Resultatliste-SM-2025.xlsx - Google Disk.html
+Resultatliste-SM-2025.xlsx - Google Disk_files/
