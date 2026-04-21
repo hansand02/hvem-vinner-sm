@@ -525,9 +525,8 @@ HTML_TEMPLATE = r"""<!doctype html>
 </head><body>
 <div class="wrap">
   <h1>Hvem vinner 8+ på SM 2026?</h1>
-  <p class="sub">Offisiell trekning er låst inn. Velg ditt lag, dra båter hvis du vil leke
-    med alternative heat, og se hvor sannsynlig det er at du vinner. Basert på
-    plasseringer fra SM24 og SM25.</p>
+  <p class="sub">Offisiell trekning er låst inn. Velg ditt lag og se hvor sannsynlig det
+    er at dere vinner. Basert på plasseringer fra SM24 og SM25.</p>
 
   <div id="mens-container"></div>
   <div id="womens-container"></div>
@@ -741,7 +740,6 @@ function renderFlow(g, containerId, title){
     .map(t => `<option value="${t}" ${t===pick?'selected':''}>${labelOf(g,t)}</option>`).join('');
   const cardButtons = `
     <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-      <button class="resetofficial" data-g="${g}" style="font:inherit;font-size:11px;padding:4px 8px;border:1px solid var(--rule);background:#fff;border-radius:3px;cursor:pointer;">⟲ Tilbakestill til offisiell trekning</button>
       <button class="resim" data-g="${g}" style="font:inherit;font-size:11px;padding:4px 8px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;font-weight:700">↻ Simuler på nytt</button>
     </div>`;
 
@@ -826,9 +824,7 @@ function renderFlow(g, containerId, title){
         ? `<span class="ex-badge">heat-seier <b>${pct(p.heatWin)}</b></span>`
         : `<span class="ex-badge">A-finale <b>${pct(p.afinal)}</b></span>`;
       return `<div class="ex-pill${winner?' winner':''}${pickedCls(code)}" id="ex-${g}-h-${code}"
-          draggable="true" data-g="${g}" data-t="${code}" data-heat="${hi}"
           data-to="${toId}" data-arrow="${arr}">
-        <span class="drag-handle" title="dra til et annet heat">⋮⋮</span>
         <span class="ex-pos">${i+1}</span>
         <span class="ex-name">${labelOf(g, code)}${boostMark(g, code)}</span>
         ${badge}
@@ -874,7 +870,7 @@ function renderFlow(g, containerId, title){
       <div class="ex-flow" id="flow-${g}">
         <svg class="ex-arrows" xmlns="http://www.w3.org/2000/svg"></svg>
         <div class="ex-col">
-          <div class="ex-col-title">Offisiell trekning · dra lag for å teste alternativer</div>
+          <div class="ex-col-title">Offisiell trekning</div>
           ${heatsHtml}
         </div>
         <div class="ex-col">
@@ -893,7 +889,6 @@ function renderFlow(g, containerId, title){
         <span style="opacity:.55;text-decoration:line-through">slått ut</span> i Oppsamling
         <span class="boost-mark pos">↑ +1</span> = sterkere enn i fjor
         <span class="boost-mark neg">↓ −1</span> = svakere enn i fjor
-        <span style="color:var(--muted)"><b>⋮⋮</b> = dra båt til annet heat</span>
         <span style="color:var(--muted)">%-tall = sannsynlighet fra ${NSIM.toLocaleString()} simuleringer</span>
       </div>
     </div>`;
@@ -938,55 +933,8 @@ function render(){
   renderFlow('W', 'womens-container', "Damer 8+");
 }
 
-// Tap-to-move (works on touch + click): tap the drag handle to "pick up",
-// then tap any heat to drop. Tap again on the same pill to cancel.
-let pickedForMove = null;
-function clearPicking(){
-  document.querySelectorAll('.ex-pill.picking').forEach(p => p.classList.remove('picking'));
-  document.querySelectorAll('.ex-heat.move-target').forEach(h => h.classList.remove('move-target'));
-  pickedForMove = null;
-}
-document.addEventListener('click', e => {
-  // Drag handle tap = pick up the pill.
-  const handle = e.target.closest('.drag-handle');
-  if(handle){
-    e.stopPropagation();
-    const pill = handle.closest('.ex-pill[draggable="true"]');
-    if(!pill) return;
-    if(pickedForMove && pickedForMove.pill === pill){ clearPicking(); return; }
-    clearPicking();
-    pickedForMove = {pill, g: pill.dataset.g, t: pill.dataset.t, fromHeat: +pill.dataset.heat};
-    pill.classList.add('picking');
-    document.querySelectorAll(`.ex-heat[data-g="${pickedForMove.g}"]`).forEach(h => h.classList.add('move-target'));
-    return;
-  }
-  // Tap on a heat while picking = drop.
-  if(pickedForMove){
-    const heat = e.target.closest('.ex-heat');
-    if(heat && heat.dataset.g === pickedForMove.g){
-      const to = +heat.dataset.heat, from = pickedForMove.fromHeat;
-      if(to !== from){
-        const t = pickedForMove.t;
-        HEATS[pickedForMove.g][from] = HEATS[pickedForMove.g][from].filter(x => x !== t);
-        HEATS[pickedForMove.g][to].push(t);
-      }
-      clearPicking();
-      render();
-      return;
-    }
-    // Tap elsewhere cancels.
-    clearPicking();
-  }
-});
-
 // Events
 document.addEventListener('click', e => {
-  if(e.target.classList.contains('resetofficial')){
-    const g = e.target.dataset.g;
-    HEATS[g] = OFFICIAL[g].map(h=>[...h]);
-    render();
-    return;
-  }
   if(e.target.classList.contains('resim')){
     render();
     return;
@@ -1006,46 +954,6 @@ document.addEventListener('change', e => {
     SELECTED[e.target.dataset.g] = e.target.value || null;
     render();
   }
-});
-
-// Drag-and-drop
-let dragState = null;
-document.addEventListener('dragstart', e => {
-  const pill = e.target.closest('.ex-pill[draggable="true"]');
-  if(!pill) return;
-  pill.classList.add('dragging');
-  dragState = {g: pill.dataset.g, t: pill.dataset.t, fromHeat: +pill.dataset.heat};
-  e.dataTransfer.effectAllowed = 'move';
-});
-document.addEventListener('dragend', e => {
-  const pill = e.target.closest('.ex-pill');
-  if(pill) pill.classList.remove('dragging');
-  document.querySelectorAll('.ex-heat.drop-target').forEach(c => c.classList.remove('drop-target'));
-  dragState = null;
-});
-document.addEventListener('dragover', e => {
-  const heat = e.target.closest('.ex-heat');
-  if(!heat || !dragState || heat.dataset.g !== dragState.g) return;
-  e.preventDefault();
-  heat.classList.add('drop-target');
-});
-document.addEventListener('dragleave', e => {
-  const heat = e.target.closest('.ex-heat');
-  if(heat) heat.classList.remove('drop-target');
-});
-document.addEventListener('drop', e => {
-  const heat = e.target.closest('.ex-heat');
-  if(!heat || !dragState) return;
-  e.preventDefault();
-  const g = dragState.g, to = +heat.dataset.heat, from = dragState.fromHeat;
-  if(to !== from){
-    const t = dragState.t;
-    HEATS[g][from] = HEATS[g][from].filter(x => x !== t);
-    HEATS[g][to].push(t);
-  }
-  heat.classList.remove('drop-target');
-  dragState = null;
-  render();
 });
 
 // Redraw arrows on resize.
@@ -1069,24 +977,16 @@ function encodeState(){
   const parts = [];
   for(const g of GENDERS){
     const prefix = g.toLowerCase() + '.';
-    parts.push(`${prefix}heats=${HEATS[g].map(h=>h.join(',')).join('|')}`);
     const adjs = Object.entries(ADJ[g]).filter(([,v]) => v).map(([t,v])=>`${t}:${v}`).join(',');
     if(adjs) parts.push(`${prefix}adj=${adjs}`);
     if(SELECTED[g]) parts.push(`${prefix}pick=${SELECTED[g]}`);
   }
-  return '?' + parts.join('&');
+  return parts.length ? '?' + parts.join('&') : window.location.pathname;
 }
 function decodeState(){
   const q = new URLSearchParams(window.location.search);
   for(const g of GENDERS){
     const prefix = g.toLowerCase() + '.';
-    const heats = q.get(prefix+'heats');
-    if(heats){
-      const parsed = heats.split('|').map(h => h.split(',').filter(Boolean));
-      // Only accept if we recognise every team code.
-      const known = new Set(DATA[g].teams.map(t=>t.team));
-      if(parsed.flat().every(t => known.has(t))) HEATS[g] = parsed;
-    }
     const adj = q.get(prefix+'adj');
     if(adj !== null){
       ADJ[g] = {};
