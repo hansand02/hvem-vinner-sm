@@ -34,13 +34,22 @@ np.random.seed(0xC0FFEE)
 ROOT = Path(__file__).parent
 NSIM = 50_000
 
-# 2026 men start-list (provided by user). Women = everything we have on file.
-TEAMS_2026 = {
-    "M": ["JRC", "CREW", "JUSTITIAH1", "MRKH1", "MRKH2", "NTNUIH1", "NTNUIH2",
-          "OSIH1", "OSIH2", "BSIH1", "BSIH2", "RNNABC1", "RNNABC2"],
+# 2026 offisiell heat-trekning (låst fra arrangør).
+OFFICIAL_HEATS = {
+    "M": [
+        ["NTNUIH1", "BSIH2", "MRKH1", "OSIH2", "CREW"],       # Heat 1
+        ["NTNUIH2", "JUSTITIAH1", "BSIH1", "RNNABC2"],         # Heat 2
+        ["OSIH1", "RNNABC1", "MRKH2", "JRC"],                  # Heat 3
+    ],
+    "W": [
+        ["NTNUID1", "JUSTITIAD1", "SKKRD2", "MRKD1", "BSID2", "OMRD2"],      # Heat 1
+        ["OSID1", "JRCD1", "OKTAGOND2", "OMRD1", "NTNUID3", "NTNUID2"],      # Heat 2
+        ["OKTAGOND1", "SKKRD1", "JUSTITIAD2", "BSID1", "OSID2", "MRKD2"],    # Heat 3
+    ],
 }
+TEAMS_2026 = {g: [t for h in heats for t in h] for g, heats in OFFICIAL_HEATS.items()}
 
-GENDERS = ("M",)  # women's division removed
+GENDERS = ("M", "W")
 
 # Each +/- step shifts perceived strength by this many seconds over 1600m.
 SEC_PER_STEP = 2.0
@@ -262,7 +271,7 @@ TEAM_LABELS = {
     "MRKD1": "MRK D1", "MRKD2": "MRK D2", "JRCD1": "JRC D1",
     "JUSTITIAD1": "Justitia D1", "JUSTITIAD2": "Justitia D2",
     "OKTAGOND1": "Oktagon D1", "OKTAGOND2": "Oktagon D2",
-    "SKKRD1": "SKKR D1", "OMRD1": "OMR D1", "OMRD2": "OMR D2",
+    "SKKRD1": "SKKR D1", "SKKRD2": "SKKR D2", "OMRD1": "OMR D1", "OMRD2": "OMR D2",
 }
 
 
@@ -281,9 +290,9 @@ def fmt_secs(t):
     return f"{m}:{s:05.2f}".rstrip("0").rstrip(".")
 
 
-def build_results_html(rows):
-    """Render the historical results (men only) as a clean nested table."""
-    sub = [r for r in rows if r["gender"] == "M"]
+def build_results_html(rows, gender="M"):
+    """Render historical results for one gender as a clean nested table."""
+    sub = [r for r in rows if r["gender"] == gender]
     by_year = defaultdict(lambda: defaultdict(list))
     for r in sub:
         by_year[r["year"]][r["stage"]].append(r)
@@ -298,11 +307,12 @@ def build_results_html(rows):
                                    "feil tid). Den interne rekkefølgen er likevel korrekt."),
     }
 
+    gender_label = "herrer" if gender == "M" else "damer"
     out = []
     for year in sorted(by_year.keys(), reverse=True):
         year_rows = by_year[year]
         out.append(f'<details class="src" {"open" if year == max(by_year) else ""}>')
-        out.append(f'<summary><b>SM {year}</b> · herrer 8+</summary>')
+        out.append(f'<summary><b>SM {year}</b> · {gender_label} 8+</summary>')
         if year in YEAR_NOTES:
             out.append(f'<div class="src-note">⚠ {YEAR_NOTES[year]}</div>')
         out.append('<div class="src-body">')
@@ -356,12 +366,14 @@ def write_html(bundles):
         payload[g]["teams"].sort(key=lambda x: -x["strength"])
     data_json = json.dumps(payload)
     rows = load()
-    results_html = build_results_html(rows)
+    results_m = build_results_html(rows, "M")
+    results_w = build_results_html(rows, "W")
     html = (HTML_TEMPLATE
             .replace("__DATA__", data_json)
             .replace("__SEC_PER_STEP__", str(SEC_PER_STEP))
             .replace("__NSIM__", str(8000))
-            .replace("__RESULTS__", results_html))
+            .replace("__RESULTS_M__", results_m)
+            .replace("__RESULTS_W__", results_w))
     (ROOT / "index.html").write_text(html)
     print(f"\n→ wrote index.html ({(ROOT / 'index.html').stat().st_size // 1024} kB)")
 
@@ -370,7 +382,7 @@ HTML_TEMPLATE = r"""<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SM 2026 8+ prognose</title>
+<title>SM 2026 8+ prognose · herrer & damer</title>
 <style>
   :root{
     --bg:#fafafa; --ink:#1a1a1a; --muted:#666; --rule:#e5e5e5;
@@ -512,15 +524,20 @@ HTML_TEMPLATE = r"""<!doctype html>
 </style>
 </head><body>
 <div class="wrap">
-  <h1>Hvem vinner herrer 8+ på SM 2026?</h1>
-  <p class="sub">Velg ditt lag, dra båter mellom heat, og se hvor sannsynlig det er at du
-    vinner. Basert på plasseringer fra SM24 og SM25.</p>
+  <h1>Hvem vinner 8+ på SM 2026?</h1>
+  <p class="sub">Offisiell trekning er låst inn. Velg ditt lag, dra båter hvis du vil leke
+    med alternative heat, og se hvor sannsynlig det er at du vinner. Basert på
+    plasseringer fra SM24 og SM25.</p>
 
   <div id="mens-container"></div>
+  <div id="womens-container"></div>
 
   <h2>Resultater fra tidligere år <small>kildedata bak modellen</small></h2>
   <div class="sources">
-    __RESULTS__
+    <div style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:4px">Herrer</div>
+    __RESULTS_M__
+    <div style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:10px">Damer</div>
+    __RESULTS_W__
   </div>
 
   <details class="methodology">
@@ -539,8 +556,9 @@ HTML_TEMPLATE = r"""<!doctype html>
           Plackett-Luce ved hjelp av Gumbel-max-trikset. Heat-vinnere går rett til A-finalen;
           de 3 raskeste fra Oppsamling går videre. 8 000 simuleringer gir sannsynlighetene
           som vises på hvert lag.</li>
-        <li><b>Klubb-begrensning.</b> Heatene er balansert til 5+4+4, og to båter fra samme
-          klubb havner aldri i samme heat (med mindre du drar dem dit selv).</li>
+        <li><b>Trekning.</b> Heatene er den offisielle trekningen fra arrangør
+          (herrer 5+4+4, damer 6+6+6). Du kan dra båter mellom heat for å teste
+          hvordan alternative trekninger ville sett ut.</li>
       </ol>
       <div class="caveats">
         <b>Forbehold.</b> Studentmannskap roterer fra år til år, så årsvekter dekker bare
@@ -558,17 +576,26 @@ const DATA = __DATA__;
 const SEC_PER_STEP = __SEC_PER_STEP__;
 const NSIM = __NSIM__;
 
-const GENDERS = ['M'];
+const GENDERS = ['M', 'W'];
 
 // ADJ: integer steps per team. Positive = stronger in 2026.
-const ADJ = {M:{}};
+const ADJ = {M:{}, W:{}};
 Object.assign(ADJ.M, DATA.M.adj || {});
+Object.assign(ADJ.W, DATA.W.adj || {});
 
-// Live heat assignments (draggable).
-const HEATS = {M: DATA.M.seeds.map(h=>[...h])};
+// Official (locked) draw — used as both the default and the reset target.
+const OFFICIAL = {
+  M: DATA.M.seeds.map(h=>[...h]),
+  W: DATA.W.seeds.map(h=>[...h]),
+};
+// Live heat assignments (draggable — user can still tinker).
+const HEATS = {
+  M: DATA.M.seeds.map(h=>[...h]),
+  W: DATA.W.seeds.map(h=>[...h]),
+};
 
 // User's chosen team per division (for the stats card + pill highlight).
-const SELECTED = {M: 'OSIH2'};
+const SELECTED = {M: 'OSIH2', W: null};
 
 // Apply ADJ (steps → strength units) → return {team: strength}.
 function teamStrengths(g){
@@ -714,7 +741,7 @@ function renderFlow(g, containerId, title){
     .map(t => `<option value="${t}" ${t===pick?'selected':''}>${labelOf(g,t)}</option>`).join('');
   const cardButtons = `
     <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-      <button class="redrawheats" data-g="${g}" style="font:inherit;font-size:11px;padding:4px 8px;border:1px solid var(--rule);background:#fff;border-radius:3px;cursor:pointer;">↻ Trekk heat på nytt</button>
+      <button class="resetofficial" data-g="${g}" style="font:inherit;font-size:11px;padding:4px 8px;border:1px solid var(--rule);background:#fff;border-radius:3px;cursor:pointer;">⟲ Tilbakestill til offisiell trekning</button>
       <button class="resim" data-g="${g}" style="font:inherit;font-size:11px;padding:4px 8px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;font-weight:700">↻ Simuler på nytt</button>
     </div>`;
 
@@ -847,7 +874,7 @@ function renderFlow(g, containerId, title){
       <div class="ex-flow" id="flow-${g}">
         <svg class="ex-arrows" xmlns="http://www.w3.org/2000/svg"></svg>
         <div class="ex-col">
-          <div class="ex-col-title">Heat (dra lag for å endre trekningen)</div>
+          <div class="ex-col-title">Offisiell trekning · dra lag for å teste alternativer</div>
           ${heatsHtml}
         </div>
         <div class="ex-col">
@@ -907,7 +934,8 @@ function drawArrows(container){
 }
 
 function render(){
-  renderFlow('M', 'mens-container', "Men's 8+");
+  renderFlow('M', 'mens-container', "Herrer 8+");
+  renderFlow('W', 'womens-container', "Damer 8+");
 }
 
 // Tap-to-move (works on touch + click): tap the drag handle to "pick up",
@@ -953,22 +981,9 @@ document.addEventListener('click', e => {
 
 // Events
 document.addEventListener('click', e => {
-  if(e.target.classList.contains('resetseeds')){
+  if(e.target.classList.contains('resetofficial')){
     const g = e.target.dataset.g;
-    const strengths = teamStrengths(g);
-    const ordered = Object.keys(strengths).sort((a,b)=>strengths[b]-strengths[a]);
-    HEATS[g] = placeWithConstraint(ordered, 3);
-    render();
-    return;
-  }
-  if(e.target.classList.contains('redrawheats')){
-    const g = e.target.dataset.g;
-    const teams = Object.keys(teamStrengths(g));
-    for(let i=teams.length-1;i>0;i--){
-      const j = Math.floor(Math.random()*(i+1));
-      [teams[i], teams[j]] = [teams[j], teams[i]];
-    }
-    HEATS[g] = placeWithConstraint(teams, 3);
+    HEATS[g] = OFFICIAL[g].map(h=>[...h]);
     render();
     return;
   }
@@ -1039,6 +1054,7 @@ window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
     drawArrows(document.getElementById('flow-M'));
+    drawArrows(document.getElementById('flow-W'));
   }, 80);
 });
 
@@ -1130,7 +1146,8 @@ def main():
             if t in strengths:
                 strengths[t] += steps * SEC_PER_STEP / alpha
 
-        heats = seed_snake(list(strengths.keys()), strengths, 3)
+        # Offisiell trekning har prioritet; ellers seed på styrke.
+        heats = OFFICIAL_HEATS.get(gender) or seed_snake(list(strengths.keys()), strengths, 3)
         probs = simulate_bracket(strengths, heats, nsim=NSIM)
         print_report(gender, strengths, probs, alpha)
 
