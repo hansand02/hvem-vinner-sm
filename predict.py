@@ -37,14 +37,14 @@ NSIM = 50_000
 # 2026 offisiell heat-trekning (låst fra arrangør).
 OFFICIAL_HEATS = {
     "M": [
-        ["NTNUIH1", "BSIH2", "MRKH1", "OSIH2", "CREW"],       # Heat 1
-        ["NTNUIH2", "JUSTITIAH1", "BSIH1", "RNNABC2"],         # Heat 2
-        ["OSIH1", "RNNABC1", "MRKH2", "JRC"],                  # Heat 3
+        ["NTNUIH1", "BSIH1", "MRKH1", "OSIH2"],                            # Heat 1
+        ["RNNABC2", "NTNUIH2", "JUSTITIAH1", "OSIH1", "BSIH2"],            # Heat 2
+        ["CREW", "RNNABC1", "MRKH2", "JRC"],                                # Heat 3
     ],
     "W": [
-        ["NTNUID1", "JUSTITIAD1", "SKKRD2", "MRKD1", "BSID2", "OMRD2"],      # Heat 1
-        ["OSID1", "JRCD1", "OKTAGOND2", "OMRD1", "NTNUID3", "NTNUID2"],      # Heat 2
-        ["OKTAGOND1", "SKKRD1", "JUSTITIAD2", "BSID1", "OSID2", "MRKD2"],    # Heat 3
+        ["NTNUID1", "JUSTITIAD1", "SKKRD2", "MRKD1", "BSID2", "OMRD2"],    # Heat 1
+        ["OSID1", "JRCD1", "OKTAGOND1", "OMRD1", "NTNUID3", "NTNUID2"],    # Heat 2
+        ["OKTAGOND2", "SKKRD1", "JUSTITIAD2", "BSID1", "OSID2", "MRKD2"],  # Heat 3
     ],
 }
 TEAMS_2026 = {g: [t for h in heats for t in h] for g, heats in OFFICIAL_HEATS.items()}
@@ -192,24 +192,47 @@ def sample_pl(team_strengths):
     return [t for t, _ in draws]
 
 
+# 2026 bracket structure (offisielt regelverk):
+#   Heat → Semifinale → A-finale.
+#   Top-2 i hvert heat går direkte videre. De resterende ("utenom") rangeres
+#   etter tid på tvers av heatene; topp-6 går videre til semi. Snake-fordeling
+#   inn i to semifinaler:
+#     SF1 = H1#1, H1#2, H2#2, utenom#2, utenom#3, utenom#6
+#     SF2 = H2#1, H3#1, H3#2, utenom#1, utenom#4, utenom#5
+#   Topp-3 fra hver semi går til A-finalen (6 båter).
+
+def _build_semis(heat_orders, utenom_order):
+    sf1 = [heat_orders[0][0], heat_orders[0][1], heat_orders[1][1],
+           utenom_order[1], utenom_order[2], utenom_order[5]]
+    sf2 = [heat_orders[1][0], heat_orders[2][0], heat_orders[2][1],
+           utenom_order[0], utenom_order[3], utenom_order[4]]
+    return sf1, sf2
+
+
 def simulate_bracket(strengths, heats, nsim=NSIM):
     """Monte Carlo: each race samples a P-L ordering. Returns per-team probs."""
     names = list(strengths.keys())
-    tallies = {n: {"win": 0, "medal": 0, "a_final": 0, "heat_win": 0, "via_rep": 0}
+    tallies = {n: {"win": 0, "medal": 0, "a_final": 0, "semi": 0,
+                   "heat_top2": 0, "via_utenom": 0}
                for n in names}
     for _ in range(nsim):
-        heat_winners, rest = [], []
+        heat_orders = []
+        utenom_pool = []
         for heat in heats:
             order = sample_pl({t: strengths[t] for t in heat})
-            heat_winners.append(order[0])
-            rest.extend(order[1:])
-        for w in heat_winners:
-            tallies[w]["heat_win"] += 1
-        rep_order = sample_pl({t: strengths[t] for t in rest})
-        rep_adv = rep_order[:3]
-        for t in rep_adv:
-            tallies[t]["via_rep"] += 1
-        a_final = heat_winners + rep_adv
+            heat_orders.append(order)
+            for t in order[:2]:
+                tallies[t]["heat_top2"] += 1
+            utenom_pool.extend(order[2:])
+        utenom_order = sample_pl({t: strengths[t] for t in utenom_pool})
+        for t in utenom_order[:6]:
+            tallies[t]["via_utenom"] += 1
+        sf1, sf2 = _build_semis(heat_orders, utenom_order)
+        for t in sf1 + sf2:
+            tallies[t]["semi"] += 1
+        sf1_order = sample_pl({t: strengths[t] for t in sf1})
+        sf2_order = sample_pl({t: strengths[t] for t in sf2})
+        a_final = sf1_order[:3] + sf2_order[:3]
         for t in a_final:
             tallies[t]["a_final"] += 1
         fin = sample_pl({t: strengths[t] for t in a_final})
@@ -224,20 +247,23 @@ def simulate_bracket(strengths, heats, nsim=NSIM):
 
 def expected_bracket(strengths, heats):
     """Deterministic most-likely path: order by strength at every stage."""
-    heat_results, heat_winners, rest = [], [], []
+    heat_results = []
+    utenom_pool = []
     for heat in heats:
         ordered = sorted(heat, key=lambda t: -strengths[t])
         heat_results.append(ordered)
-        heat_winners.append(ordered[0])
-        rest.extend(ordered[1:])
-    rep_order = sorted(rest, key=lambda t: -strengths[t])
-    rep_adv = rep_order[:3]
-    a_final_teams = heat_winners + rep_adv
+        utenom_pool.extend(ordered[2:])
+    utenom_order = sorted(utenom_pool, key=lambda t: -strengths[t])
+    sf1, sf2 = _build_semis(heat_results, utenom_order)
+    sf1_order = sorted(sf1, key=lambda t: -strengths[t])
+    sf2_order = sorted(sf2, key=lambda t: -strengths[t])
+    a_final_teams = sf1_order[:3] + sf2_order[:3]
     final_order = sorted(a_final_teams, key=lambda t: -strengths[t])
     return {
         "heats": heat_results,
-        "rep_order": rep_order,
-        "rep_adv": rep_adv,
+        "utenom_order": utenom_order,
+        "sf1_order": sf1_order,
+        "sf2_order": sf2_order,
         "final_order": final_order,
     }
 
@@ -248,14 +274,14 @@ def print_report(gender, strengths, probs, alpha):
     print(f"Scale α = {alpha:5.2f} s per strength unit · model: Plackett–Luce\n")
     rows = sorted(strengths.items(), key=lambda kv: -kv[1])
     print(f"{'Rank':>4}  {'Team':<12}  {'Strength':>8}  {'≈ gap':>8}  "
-          f"{'Win%':>6}  {'Medal%':>7}  {'AFinal%':>8}  {'HeatWin%':>8}")
+          f"{'Win%':>6}  {'Medal%':>7}  {'AFinal%':>8}  {'Semi%':>7}")
     print("-" * 80)
     best = rows[0][1]
     for i, (t, s) in enumerate(rows, 1):
         p = probs[t]
         print(f"{i:>4}  {t:<12}  {s:>+7.2f}   {(best-s)*alpha:>+6.1f}s  "
               f"{p['win']*100:>5.1f}%  {p['medal']*100:>6.1f}%  "
-              f"{p['a_final']*100:>7.1f}%  {p['heat_win']*100:>7.1f}%")
+              f"{p['a_final']*100:>7.1f}%  {p['semi']*100:>6.1f}%")
 
 
 TEAM_LABELS = {
@@ -414,6 +440,16 @@ HTML_TEMPLATE = r"""<!doctype html>
   .ex-heat{border:1px solid var(--rule);border-radius:4px;padding:6px 8px;background:var(--bg);transition:background .1s,border-color .1s;}
   .ex-heat.drop-target{background:var(--hl);border-color:var(--accent);}
   .ex-heat-title{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+  .ex-utenom{border:1px dashed var(--rule);border-radius:4px;padding:8px 10px;background:var(--bg);margin-top:6px;}
+  .ex-utenom-title{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+  .ex-utenom-sub{font-size:11px;color:var(--muted);margin-bottom:6px;line-height:1.4;}
+  .ex-utenom-row{display:grid;grid-template-columns:32px 1fr auto;gap:8px;align-items:center;font-size:12px;padding:3px 4px;border-bottom:1px solid var(--rule);}
+  .ex-utenom-row:last-child{border-bottom:none;}
+  .ex-utenom-row.out{opacity:.5;}
+  .ex-utenom-row.out .ex-utenom-name{text-decoration:line-through;}
+  .ex-utenom-row.picked{background:var(--hl);border-radius:3px;}
+  .ex-utenom-rank{color:var(--muted);font-weight:700;font-size:11px;}
+  .ex-utenom-dest{color:var(--muted);font-size:11px;}
   .ex-pill{display:grid;grid-template-columns:18px 1fr auto;gap:8px;padding:5px 8px;align-items:center;
     font-size:12px;border:1px solid var(--rule);background:#fff;border-radius:3px;margin:3px 0;position:relative;}
   .ex-pill[draggable="true"]{grid-template-columns:14px 18px 1fr auto;cursor:grab;}
@@ -676,25 +712,45 @@ function gumbel(){
   return -Math.log(-Math.log(u));
 }
 
-// Monte Carlo bracket sim → per-team probabilities.
+// Bracket: heat → semifinaler → A-finale.
+//   Topp-2 i hvert heat går direkte videre.
+//   Resterende ("utenom") rangeres på tvers; topp-6 går videre. Snake-fordeling:
+//     SF1 = H1#1, H1#2, H2#2, utenom#2, utenom#3, utenom#6
+//     SF2 = H2#1, H3#1, H3#2, utenom#1, utenom#4, utenom#5
+//   Topp-3 fra hver semi → A-finalen (6 båter).
+function buildSemis(heatOrders, utenomOrder){
+  const sf1 = [heatOrders[0][0], heatOrders[0][1], heatOrders[1][1],
+               utenomOrder[1], utenomOrder[2], utenomOrder[5]];
+  const sf2 = [heatOrders[1][0], heatOrders[2][0], heatOrders[2][1],
+               utenomOrder[0], utenomOrder[3], utenomOrder[4]];
+  return {sf1, sf2};
+}
+
 function simulateBracket(strengths, heats, nsim){
   const names = Object.keys(strengths);
   const t = {};
-  for(const n of names) t[n] = {win:0, medal:0, afinal:0, heatWin:0, viaRep:0};
+  for(const n of names) t[n] = {win:0, medal:0, afinal:0, semi:0, heatTop2:0, viaUtenom:0};
   for(let s=0; s<nsim; s++){
-    const winners = [], rest = [];
+    const heatOrders = [];
+    const utenomPool = [];
     for(const heat of heats){
       const sub = {}; for(const x of heat) sub[x] = strengths[x];
       const o = sampleOrder(sub);
-      winners.push(o[0]);
-      for(let i=1;i<o.length;i++) rest.push(o[i]);
+      heatOrders.push(o);
+      t[o[0]].heatTop2++; t[o[1]].heatTop2++;
+      for(let i=2;i<o.length;i++) utenomPool.push(o[i]);
     }
-    for(const w of winners) t[w].heatWin++;
-    const subR = {}; for(const x of rest) subR[x] = strengths[x];
-    const repO = sampleOrder(subR);
-    const adv = repO.slice(0,3);
-    for(const x of adv) t[x].viaRep++;
-    const finalTeams = [...winners, ...adv];
+    const subU = {}; for(const x of utenomPool) subU[x] = strengths[x];
+    const utenomOrder = sampleOrder(subU);
+    for(let i=0;i<6;i++) t[utenomOrder[i]].viaUtenom++;
+    const {sf1, sf2} = buildSemis(heatOrders, utenomOrder);
+    for(const x of sf1) t[x].semi++;
+    for(const x of sf2) t[x].semi++;
+    const sub1 = {}; for(const x of sf1) sub1[x] = strengths[x];
+    const sub2 = {}; for(const x of sf2) sub2[x] = strengths[x];
+    const o1 = sampleOrder(sub1).slice(0,3);
+    const o2 = sampleOrder(sub2).slice(0,3);
+    const finalTeams = [...o1, ...o2];
     for(const x of finalTeams) t[x].afinal++;
     const subF = {}; for(const x of finalTeams) subF[x] = strengths[x];
     const finO = sampleOrder(subF);
@@ -707,16 +763,18 @@ function simulateBracket(strengths, heats, nsim){
   return t;
 }
 
-// Deterministic most-likely path.
 function expectedBracket(strengths, heats){
   const heatRes = heats.map(h => [...h].sort((a,b)=>strengths[b]-strengths[a]));
-  const winners = heatRes.map(r => r[0]);
-  const rest = heatRes.flatMap(r => r.slice(1));
-  const repOrder = [...rest].sort((a,b)=>strengths[b]-strengths[a]);
-  const repAdv = repOrder.slice(0,3);
-  const finalTeams = [...winners, ...repAdv];
+  const utenomPool = heatRes.flatMap(r => r.slice(2));
+  const utenomOrder = [...utenomPool].sort((a,b)=>strengths[b]-strengths[a]);
+  const {sf1, sf2} = buildSemis(heatRes, utenomOrder);
+  const sf1Order = [...sf1].sort((a,b)=>strengths[b]-strengths[a]);
+  const sf2Order = [...sf2].sort((a,b)=>strengths[b]-strengths[a]);
+  const finalTeams = [...sf1Order.slice(0,3), ...sf2Order.slice(0,3)];
   const finalOrder = [...finalTeams].sort((a,b)=>strengths[b]-strengths[a]);
-  return {heatRes, winners: new Set(winners), repOrder, repAdv: new Set(repAdv), finalOrder};
+  const semiSet = new Set([...sf1, ...sf2]);
+  const utenomAdv = new Set(utenomOrder.slice(0,6));
+  return {heatRes, utenomOrder, utenomAdv, sf1Order, sf2Order, finalOrder, semiSet};
 }
 
 function renderFlow(g, containerId, title){
@@ -779,9 +837,12 @@ function renderFlow(g, containerId, title){
     const p = probs[pick];
     const expectedRank = exp.finalOrder.indexOf(pick);
     const placeWord = ['🥇','🥈','🥉','4. plass','5. plass','6. plass'][expectedRank] || ((expectedRank+1)+'. plass');
+    const inSemi = exp.semiSet.has(pick);
     const expectedStr = expectedRank >= 0
       ? `mest sannsynlig ${expectedRank===0?'vinner':placeWord} i A-finalen`
-      : `går ikke til A-finale i mest sannsynlige utfall · plass ${exp.repOrder.indexOf(pick)+1} i Oppsamling`;
+      : (inSemi
+          ? `går ikke til A-finale i mest sannsynlige utfall · ute i semifinalen`
+          : `slått ut etter heatene i mest sannsynlige utfall · tid #${exp.utenomOrder.indexOf(pick)+7} blant 3.+plassene`);
     cardHtml = `
       <div class="pick">
         <label>Ditt lag</label>
@@ -796,8 +857,8 @@ function renderFlow(g, containerId, title){
         <div class="stat"><span class="val accent">${pct1(p.win)}</span><span class="lbl">Seier</span><span class="sub">SM-gull</span></div>
         <div class="stat"><span class="val">${pct1(p.medal)}</span><span class="lbl">Medalje</span><span class="sub">topp 3</span></div>
         <div class="stat"><span class="val">${pct1(p.afinal)}</span><span class="lbl">A-finale</span><span class="sub">topp 6</span></div>
-        <div class="stat"><span class="val">${pct1(p.heatWin)}</span><span class="lbl">Heat-seier</span><span class="sub">rett til finale</span></div>
-        <div class="stat"><span class="val">${pct1(p.viaRep)}</span><span class="lbl">Via Oppsamling</span><span class="sub">går videre fra Oppsamling</span></div>
+        <div class="stat"><span class="val">${pct1(p.semi)}</span><span class="lbl">Semifinale</span><span class="sub">topp 2 i heat / topp 6 på tid</span></div>
+        <div class="stat"><span class="val">${pct1(p.heatTop2)}</span><span class="lbl">Topp-2 i heat</span><span class="sub">direkte til semi</span></div>
       </div>`;
   } else {
     cardHtml = `
@@ -810,42 +871,84 @@ function renderFlow(g, containerId, title){
         ${cardButtons}
       </div>
       <div class="stats" style="color:var(--muted);font-size:12px;align-self:center">
-        Seier · Medalje · A-finale · Heat-seier · Oppsamling vises her.
+        Seier · Medalje · A-finale · Semifinale · Topp-2 i heat vises her.
       </div>`;
   }
+
+  const heatPlace = {};
+  exp.heatRes.forEach((order, hi) => order.forEach((code, i) => {
+    if(i < 2) heatPlace[code] = `H${hi+1} · ${i+1}.`;
+  }));
+  exp.utenomOrder.forEach((code, i) => {
+    if(exp.utenomAdv.has(code)) heatPlace[code] = `Utenom u${i+1}`;
+  });
+
+  const utenomRank = {};
+  exp.utenomOrder.forEach((code, i) => { utenomRank[code] = i+1; });
+  const utenomSemiOf = u => [2,1,1,2,2,1][u-1];
 
   const heatsHtml = exp.heatRes.map((heat, hi) => {
     const pills = heat.map((code, i) => {
       const p = probs[code];
-      const winner = i === 0;
-      const toId = winner ? `ex-${g}-f-${code}` : `ex-${g}-r-${code}`;
-      const arr = winner ? 'advance' : 'rep';
-      const badge = winner
-        ? `<span class="ex-badge">heat-seier <b>${pct(p.heatWin)}</b></span>`
-        : `<span class="ex-badge">A-finale <b>${pct(p.afinal)}</b></span>`;
-      return `<div class="ex-pill${winner?' winner':''}${pickedCls(code)}" id="ex-${g}-h-${code}"
-          data-to="${toId}" data-arrow="${arr}">
+      const top2 = i < 2;
+      const u = utenomRank[code];
+      const advU = top2 ? false : (u <= 6);
+      const semiNo = top2
+        ? (i === 0 ? (hi === 0 ? 1 : 2) : (hi === 2 ? 2 : 1))
+        : (advU ? utenomSemiOf(u) : null);
+      const adv = top2 || advU;
+      const badge = top2
+        ? `<span class="ex-badge">→ Semifinale ${semiNo} · A-finale <b>${pct(p.afinal)}</b></span>`
+        : (advU
+            ? `<span class="ex-badge">tid #${u+6} → Semi ${semiNo} · A-finale <b>${pct(p.afinal)}</b></span>`
+            : `<span class="ex-badge">slått ut · semi ${pct(p.semi)}</span>`);
+      const toAttr = adv ? `data-to="ex-${g}-s${semiNo}-${code}" data-arrow="advance"` : '';
+      return `<div class="ex-pill${top2?' winner':(advU?' advancing':' out')}${pickedCls(code)}" id="ex-${g}-h-${code}" ${toAttr}>
         <span class="ex-pos">${i+1}</span>
         <span class="ex-name">${labelOf(g, code)}${boostMark(g, code)}</span>
         ${badge}
       </div>`;
     }).join('');
     return `<div class="ex-heat" data-g="${g}" data-heat="${hi}">
-      <div class="ex-heat-title">Heat ${String.fromCharCode(65+hi)} · raskeste → A-finale</div>${pills}
+      <div class="ex-heat-title">Heat ${hi+1} · topp-2 direkte til semi · 3.+ via tidsrangering</div>${pills}
     </div>`;
   }).join('');
 
-  const repHtml = exp.repOrder.map((code, i) => {
-    const adv = exp.repAdv.has(code);
-    const p = probs[code];
-    const toAttr = adv ? `data-to="ex-${g}-f-${code}" data-arrow="advance"` : '';
-    const badge = `<span class="ex-badge">A-finale ${adv?'<b>':''}${pct(p.afinal)}${adv?'</b>':''}</span>`;
-    return `<div class="ex-pill ${adv?'advancing':'out'}${pickedCls(code)}" id="ex-${g}-r-${code}" ${toAttr}>
-      <span class="ex-pos">${i+1}</span>
-      <span class="ex-name">${labelOf(g, code)}${boostMark(g, code)}</span>
-      ${badge}
+  function semiHtml(semiNo, order){
+    const pills = order.map((code, i) => {
+      const adv = i < 3;
+      const p = probs[code];
+      const toAttr = adv ? `data-to="ex-${g}-f-${code}" data-arrow="advance"` : '';
+      const origin = heatPlace[code] || '';
+      const badge = adv
+        ? `<span class="ex-badge">${origin} → A-finale <b>${pct(p.afinal)}</b></span>`
+        : `<span class="ex-badge">${origin} · slått ut</span>`;
+      return `<div class="ex-pill ${adv?'advancing':'out'}${pickedCls(code)}" id="ex-${g}-s${semiNo}-${code}" ${toAttr}>
+        <span class="ex-pos">${i+1}</span>
+        <span class="ex-name">${labelOf(g, code)}${boostMark(g, code)}</span>
+        ${badge}
+      </div>`;
+    }).join('');
+    return `<div class="ex-heat">
+      <div class="ex-heat-title">Semifinale ${semiNo} · topp-3 → A-finale</div>${pills}
     </div>`;
-  }).join('');
+  }
+  const semisHtml = semiHtml(1, exp.sf1Order) + semiHtml(2, exp.sf2Order);
+
+  const utenomTableHtml = `<div class="ex-utenom">
+    <div class="ex-utenom-title">Utenom-rangering · 3.+ plasser fra alle heat</div>
+    <div class="ex-utenom-sub">Båtene som ikke ble topp-2 sammenlignes på tvers av heatene. Topp-6 går til semi, snake-fordelt: u1→S2, u2→S1, u3→S1, u4→S2, u5→S2, u6→S1.</div>
+    ${exp.utenomOrder.map((code, i) => {
+      const adv = i < 6;
+      const semiNo = adv ? utenomSemiOf(i+1) : null;
+      const dest = adv ? `→ Semi ${semiNo}` : 'slått ut';
+      return `<div class="ex-utenom-row${adv?'':' out'}${pickedCls(code)}">
+        <span class="ex-utenom-rank">u${i+1}</span>
+        <span class="ex-utenom-name">${labelOf(g, code)}</span>
+        <span class="ex-utenom-dest">${dest}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
 
   const finalHtml = exp.finalOrder.map((code, i) => {
     const p = probs[code];
@@ -870,12 +973,12 @@ function renderFlow(g, containerId, title){
       <div class="ex-flow" id="flow-${g}">
         <svg class="ex-arrows" xmlns="http://www.w3.org/2000/svg"></svg>
         <div class="ex-col">
-          <div class="ex-col-title">Offisiell trekning</div>
+          <div class="ex-col-title">Heat</div>
           ${heatsHtml}
         </div>
         <div class="ex-col">
-          <div class="ex-col-title">Oppsamling · 3 raskeste → A-finale</div>
-          ${repHtml}
+          <div class="ex-col-title">Semifinaler</div>
+          ${semisHtml}
         </div>
         <div class="ex-col">
           <div class="ex-col-title">A-finale</div>
@@ -883,10 +986,9 @@ function renderFlow(g, containerId, title){
         </div>
       </div>
       <div class="ex-legend">
-        <span><svg width="22" height="6" style="vertical-align:middle"><path d="M 0 3 L 22 3" stroke="#0b5394" stroke-width="2"/></svg> går videre</span>
-        <span><svg width="22" height="6" style="vertical-align:middle"><path d="M 0 3 L 22 3" stroke="#a8a296" stroke-width="1.5" opacity="0.5"/></svg> til Oppsamling</span>
-        <span><span style="display:inline-block;width:10px;height:10px;background:#fff;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:2px;vertical-align:middle"></span> går til A-finalen</span>
-        <span style="opacity:.55;text-decoration:line-through">slått ut</span> i Oppsamling
+        <span><b>Format:</b> Topp-2 i hvert heat går rett til semi (plass #1–#6). 3.+plass-båtene rangeres deretter på tid på tvers av heatene som #7, #8, … Topp-6 av disse (#7–#12) går også til semi, snake-fordelt: #7→S2, #8→S1, #9→S1, #10→S2, #11→S2, #12→S1. Topp-3 i hver semi går til A-finalen.</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#fff;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:2px;vertical-align:middle"></span> går videre</span>
+        <span style="opacity:.55;text-decoration:line-through">slått ut</span>
         <span class="boost-mark pos">↑ +1</span> = sterkere enn i fjor
         <span class="boost-mark neg">↓ −1</span> = svakere enn i fjor
         <span style="color:var(--muted)">%-tall = sannsynlighet fra ${NSIM.toLocaleString()} simuleringer</span>

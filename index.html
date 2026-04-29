@@ -34,6 +34,16 @@
   .ex-heat{border:1px solid var(--rule);border-radius:4px;padding:6px 8px;background:var(--bg);transition:background .1s,border-color .1s;}
   .ex-heat.drop-target{background:var(--hl);border-color:var(--accent);}
   .ex-heat-title{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+  .ex-utenom{border:1px dashed var(--rule);border-radius:4px;padding:8px 10px;background:var(--bg);margin-top:6px;}
+  .ex-utenom-title{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+  .ex-utenom-sub{font-size:11px;color:var(--muted);margin-bottom:6px;line-height:1.4;}
+  .ex-utenom-row{display:grid;grid-template-columns:32px 1fr auto;gap:8px;align-items:center;font-size:12px;padding:3px 4px;border-bottom:1px solid var(--rule);}
+  .ex-utenom-row:last-child{border-bottom:none;}
+  .ex-utenom-row.out{opacity:.5;}
+  .ex-utenom-row.out .ex-utenom-name{text-decoration:line-through;}
+  .ex-utenom-row.picked{background:var(--hl);border-radius:3px;}
+  .ex-utenom-rank{color:var(--muted);font-weight:700;font-size:11px;}
+  .ex-utenom-dest{color:var(--muted);font-size:11px;}
   .ex-pill{display:grid;grid-template-columns:18px 1fr auto;gap:8px;padding:5px 8px;align-items:center;
     font-size:12px;border:1px solid var(--rule);background:#fff;border-radius:3px;margin:3px 0;position:relative;}
   .ex-pill[draggable="true"]{grid-template-columns:14px 18px 1fr auto;cursor:grab;}
@@ -410,7 +420,7 @@
 </div>
 
 <script>
-const DATA = {"M": {"teams": [{"team": "NTNUIH1", "label": "NTNUI H1", "strength": 3.478467755640223}, {"team": "OSIH1", "label": "OSI H1", "strength": 3.234177592993807}, {"team": "CREW", "label": "Crew", "strength": 2.215639225319502}, {"team": "BSIH1", "label": "BSI H1", "strength": 1.7660129445766588}, {"team": "NTNUIH2", "label": "NTNUI H2", "strength": 1.1533998344023138}, {"team": "RNNABC1", "label": "RNNA H1", "strength": 1.0095900481226485}, {"team": "JUSTITIAH1", "label": "Justitia H1", "strength": 0.2527115897395914}, {"team": "JRC", "label": "JRC H1", "strength": -0.6964673025745213}, {"team": "RNNABC2", "label": "RNNA H2", "strength": -0.8707465760023682}, {"team": "OSIH2", "label": "OSI H2", "strength": -1.1280016203906758}, {"team": "MRKH1", "label": "MRK H1", "strength": -1.7980171208640934}, {"team": "BSIH2", "label": "BSI H2", "strength": -2.022822826701705}, {"team": "MRKH2", "label": "MRK H2", "strength": -3.092216301287234}], "seeds": [["NTNUIH1", "BSIH2", "MRKH1", "OSIH2", "CREW"], ["NTNUIH2", "JUSTITIAH1", "BSIH1", "RNNABC2"], ["OSIH1", "RNNABC1", "MRKH2", "JRC"]], "alpha": 7.5, "adj": {"OSIH1": 2, "OSIH2": 1}}, "W": {"teams": [{"team": "NTNUID1", "label": "NTNUI D1", "strength": 2.8548039203898474}, {"team": "OSID1", "label": "OSI D1", "strength": 2.386499256163644}, {"team": "SKKRD1", "label": "SKKR D1", "strength": 1.5442106121664314}, {"team": "JUSTITIAD1", "label": "Justitia D1", "strength": 1.295356712164278}, {"team": "NTNUID2", "label": "NTNUI D2", "strength": 0.88110742767921}, {"team": "NTNUID3", "label": "NTNUI D3", "strength": 0.7784080690461885}, {"team": "MRKD1", "label": "MRK D1", "strength": 0.6874388488443609}, {"team": "BSID1", "label": "BSI D1", "strength": 0.22777606978803386}, {"team": "JRCD1", "label": "JRC D1", "strength": 0.18599873587165525}, {"team": "SKKRD2", "label": "SKKR D2", "strength": 0.0}, {"team": "OKTAGOND1", "label": "Oktagon D1", "strength": -0.0019084340400141978}, {"team": "JUSTITIAD2", "label": "Justitia D2", "strength": -0.09776200567385154}, {"team": "OSID2", "label": "OSI D2", "strength": -1.0430827075958975}, {"team": "BSID2", "label": "BSI D2", "strength": -1.5401969109087426}, {"team": "OKTAGOND2", "label": "Oktagon D2", "strength": -1.593528077316697}, {"team": "MRKD2", "label": "MRK D2", "strength": -1.9050694552056542}, {"team": "OMRD1", "label": "OMR D1", "strength": -2.3378749878360243}, {"team": "OMRD2", "label": "OMR D2", "strength": -3.0668256443099025}], "seeds": [["NTNUID1", "JUSTITIAD1", "SKKRD2", "MRKD1", "BSID2", "OMRD2"], ["OSID1", "JRCD1", "OKTAGOND2", "OMRD1", "NTNUID3", "NTNUID2"], ["OKTAGOND1", "SKKRD1", "JUSTITIAD2", "BSID1", "OSID2", "MRKD2"]], "alpha": 7.5, "adj": {}}};
+const DATA = {"M": {"teams": [{"team": "NTNUIH1", "label": "NTNUI H1", "strength": 3.478467755640223}, {"team": "OSIH1", "label": "OSI H1", "strength": 3.234177592993807}, {"team": "CREW", "label": "Crew", "strength": 2.215639225319502}, {"team": "BSIH1", "label": "BSI H1", "strength": 1.7660129445766588}, {"team": "NTNUIH2", "label": "NTNUI H2", "strength": 1.1533998344023138}, {"team": "RNNABC1", "label": "RNNA H1", "strength": 1.0095900481226485}, {"team": "JUSTITIAH1", "label": "Justitia H1", "strength": 0.2527115897395914}, {"team": "JRC", "label": "JRC H1", "strength": -0.6964673025745213}, {"team": "RNNABC2", "label": "RNNA H2", "strength": -0.8707465760023682}, {"team": "OSIH2", "label": "OSI H2", "strength": -1.1280016203906758}, {"team": "MRKH1", "label": "MRK H1", "strength": -1.7980171208640934}, {"team": "BSIH2", "label": "BSI H2", "strength": -2.022822826701705}, {"team": "MRKH2", "label": "MRK H2", "strength": -3.092216301287234}], "seeds": [["NTNUIH1", "BSIH1", "MRKH1", "OSIH2"], ["RNNABC2", "NTNUIH2", "JUSTITIAH1", "OSIH1", "BSIH2"], ["CREW", "RNNABC1", "MRKH2", "JRC"]], "alpha": 7.5, "adj": {"OSIH1": 2, "OSIH2": 1}}, "W": {"teams": [{"team": "NTNUID1", "label": "NTNUI D1", "strength": 2.8548039203898474}, {"team": "OSID1", "label": "OSI D1", "strength": 2.386499256163644}, {"team": "SKKRD1", "label": "SKKR D1", "strength": 1.5442106121664314}, {"team": "JUSTITIAD1", "label": "Justitia D1", "strength": 1.295356712164278}, {"team": "NTNUID2", "label": "NTNUI D2", "strength": 0.88110742767921}, {"team": "NTNUID3", "label": "NTNUI D3", "strength": 0.7784080690461885}, {"team": "MRKD1", "label": "MRK D1", "strength": 0.6874388488443609}, {"team": "BSID1", "label": "BSI D1", "strength": 0.22777606978803386}, {"team": "JRCD1", "label": "JRC D1", "strength": 0.18599873587165525}, {"team": "SKKRD2", "label": "SKKR D2", "strength": 0.0}, {"team": "OKTAGOND1", "label": "Oktagon D1", "strength": -0.0019084340400141978}, {"team": "JUSTITIAD2", "label": "Justitia D2", "strength": -0.09776200567385154}, {"team": "OSID2", "label": "OSI D2", "strength": -1.0430827075958975}, {"team": "BSID2", "label": "BSI D2", "strength": -1.5401969109087426}, {"team": "OKTAGOND2", "label": "Oktagon D2", "strength": -1.593528077316697}, {"team": "MRKD2", "label": "MRK D2", "strength": -1.9050694552056542}, {"team": "OMRD1", "label": "OMR D1", "strength": -2.3378749878360243}, {"team": "OMRD2", "label": "OMR D2", "strength": -3.0668256443099025}], "seeds": [["NTNUID1", "JUSTITIAD1", "SKKRD2", "MRKD1", "BSID2", "OMRD2"], ["OSID1", "JRCD1", "OKTAGOND1", "OMRD1", "NTNUID3", "NTNUID2"], ["OKTAGOND2", "SKKRD1", "JUSTITIAD2", "BSID1", "OSID2", "MRKD2"]], "alpha": 7.5, "adj": {}}};
 const SEC_PER_STEP = 2.0;
 const NSIM = 8000;
 
@@ -515,25 +525,45 @@ function gumbel(){
   return -Math.log(-Math.log(u));
 }
 
-// Monte Carlo bracket sim → per-team probabilities.
+// Bracket: heat → semifinaler → A-finale.
+//   Topp-2 i hvert heat går direkte videre.
+//   Resterende ("utenom") rangeres på tvers; topp-6 går videre. Snake-fordeling:
+//     SF1 = H1#1, H1#2, H2#2, utenom#2, utenom#3, utenom#6
+//     SF2 = H2#1, H3#1, H3#2, utenom#1, utenom#4, utenom#5
+//   Topp-3 fra hver semi → A-finalen (6 båter).
+function buildSemis(heatOrders, utenomOrder){
+  const sf1 = [heatOrders[0][0], heatOrders[0][1], heatOrders[1][1],
+               utenomOrder[1], utenomOrder[2], utenomOrder[5]];
+  const sf2 = [heatOrders[1][0], heatOrders[2][0], heatOrders[2][1],
+               utenomOrder[0], utenomOrder[3], utenomOrder[4]];
+  return {sf1, sf2};
+}
+
 function simulateBracket(strengths, heats, nsim){
   const names = Object.keys(strengths);
   const t = {};
-  for(const n of names) t[n] = {win:0, medal:0, afinal:0, heatWin:0, viaRep:0};
+  for(const n of names) t[n] = {win:0, medal:0, afinal:0, semi:0, heatTop2:0, viaUtenom:0};
   for(let s=0; s<nsim; s++){
-    const winners = [], rest = [];
+    const heatOrders = [];
+    const utenomPool = [];
     for(const heat of heats){
       const sub = {}; for(const x of heat) sub[x] = strengths[x];
       const o = sampleOrder(sub);
-      winners.push(o[0]);
-      for(let i=1;i<o.length;i++) rest.push(o[i]);
+      heatOrders.push(o);
+      t[o[0]].heatTop2++; t[o[1]].heatTop2++;
+      for(let i=2;i<o.length;i++) utenomPool.push(o[i]);
     }
-    for(const w of winners) t[w].heatWin++;
-    const subR = {}; for(const x of rest) subR[x] = strengths[x];
-    const repO = sampleOrder(subR);
-    const adv = repO.slice(0,3);
-    for(const x of adv) t[x].viaRep++;
-    const finalTeams = [...winners, ...adv];
+    const subU = {}; for(const x of utenomPool) subU[x] = strengths[x];
+    const utenomOrder = sampleOrder(subU);
+    for(let i=0;i<6;i++) t[utenomOrder[i]].viaUtenom++;
+    const {sf1, sf2} = buildSemis(heatOrders, utenomOrder);
+    for(const x of sf1) t[x].semi++;
+    for(const x of sf2) t[x].semi++;
+    const sub1 = {}; for(const x of sf1) sub1[x] = strengths[x];
+    const sub2 = {}; for(const x of sf2) sub2[x] = strengths[x];
+    const o1 = sampleOrder(sub1).slice(0,3);
+    const o2 = sampleOrder(sub2).slice(0,3);
+    const finalTeams = [...o1, ...o2];
     for(const x of finalTeams) t[x].afinal++;
     const subF = {}; for(const x of finalTeams) subF[x] = strengths[x];
     const finO = sampleOrder(subF);
@@ -546,16 +576,18 @@ function simulateBracket(strengths, heats, nsim){
   return t;
 }
 
-// Deterministic most-likely path.
 function expectedBracket(strengths, heats){
   const heatRes = heats.map(h => [...h].sort((a,b)=>strengths[b]-strengths[a]));
-  const winners = heatRes.map(r => r[0]);
-  const rest = heatRes.flatMap(r => r.slice(1));
-  const repOrder = [...rest].sort((a,b)=>strengths[b]-strengths[a]);
-  const repAdv = repOrder.slice(0,3);
-  const finalTeams = [...winners, ...repAdv];
+  const utenomPool = heatRes.flatMap(r => r.slice(2));
+  const utenomOrder = [...utenomPool].sort((a,b)=>strengths[b]-strengths[a]);
+  const {sf1, sf2} = buildSemis(heatRes, utenomOrder);
+  const sf1Order = [...sf1].sort((a,b)=>strengths[b]-strengths[a]);
+  const sf2Order = [...sf2].sort((a,b)=>strengths[b]-strengths[a]);
+  const finalTeams = [...sf1Order.slice(0,3), ...sf2Order.slice(0,3)];
   const finalOrder = [...finalTeams].sort((a,b)=>strengths[b]-strengths[a]);
-  return {heatRes, winners: new Set(winners), repOrder, repAdv: new Set(repAdv), finalOrder};
+  const semiSet = new Set([...sf1, ...sf2]);
+  const utenomAdv = new Set(utenomOrder.slice(0,6));
+  return {heatRes, utenomOrder, utenomAdv, sf1Order, sf2Order, finalOrder, semiSet};
 }
 
 function renderFlow(g, containerId, title){
@@ -618,9 +650,12 @@ function renderFlow(g, containerId, title){
     const p = probs[pick];
     const expectedRank = exp.finalOrder.indexOf(pick);
     const placeWord = ['🥇','🥈','🥉','4. plass','5. plass','6. plass'][expectedRank] || ((expectedRank+1)+'. plass');
+    const inSemi = exp.semiSet.has(pick);
     const expectedStr = expectedRank >= 0
       ? `mest sannsynlig ${expectedRank===0?'vinner':placeWord} i A-finalen`
-      : `går ikke til A-finale i mest sannsynlige utfall · plass ${exp.repOrder.indexOf(pick)+1} i Oppsamling`;
+      : (inSemi
+          ? `går ikke til A-finale i mest sannsynlige utfall · ute i semifinalen`
+          : `slått ut etter heatene i mest sannsynlige utfall · tid #${exp.utenomOrder.indexOf(pick)+7} blant 3.+plassene`);
     cardHtml = `
       <div class="pick">
         <label>Ditt lag</label>
@@ -635,8 +670,8 @@ function renderFlow(g, containerId, title){
         <div class="stat"><span class="val accent">${pct1(p.win)}</span><span class="lbl">Seier</span><span class="sub">SM-gull</span></div>
         <div class="stat"><span class="val">${pct1(p.medal)}</span><span class="lbl">Medalje</span><span class="sub">topp 3</span></div>
         <div class="stat"><span class="val">${pct1(p.afinal)}</span><span class="lbl">A-finale</span><span class="sub">topp 6</span></div>
-        <div class="stat"><span class="val">${pct1(p.heatWin)}</span><span class="lbl">Heat-seier</span><span class="sub">rett til finale</span></div>
-        <div class="stat"><span class="val">${pct1(p.viaRep)}</span><span class="lbl">Via Oppsamling</span><span class="sub">går videre fra Oppsamling</span></div>
+        <div class="stat"><span class="val">${pct1(p.semi)}</span><span class="lbl">Semifinale</span><span class="sub">topp 2 i heat / topp 6 på tid</span></div>
+        <div class="stat"><span class="val">${pct1(p.heatTop2)}</span><span class="lbl">Topp-2 i heat</span><span class="sub">direkte til semi</span></div>
       </div>`;
   } else {
     cardHtml = `
@@ -649,42 +684,84 @@ function renderFlow(g, containerId, title){
         ${cardButtons}
       </div>
       <div class="stats" style="color:var(--muted);font-size:12px;align-self:center">
-        Seier · Medalje · A-finale · Heat-seier · Oppsamling vises her.
+        Seier · Medalje · A-finale · Semifinale · Topp-2 i heat vises her.
       </div>`;
   }
+
+  const heatPlace = {};
+  exp.heatRes.forEach((order, hi) => order.forEach((code, i) => {
+    if(i < 2) heatPlace[code] = `H${hi+1} · ${i+1}.`;
+  }));
+  exp.utenomOrder.forEach((code, i) => {
+    if(exp.utenomAdv.has(code)) heatPlace[code] = `Utenom u${i+1}`;
+  });
+
+  const utenomRank = {};
+  exp.utenomOrder.forEach((code, i) => { utenomRank[code] = i+1; });
+  const utenomSemiOf = u => [2,1,1,2,2,1][u-1];
 
   const heatsHtml = exp.heatRes.map((heat, hi) => {
     const pills = heat.map((code, i) => {
       const p = probs[code];
-      const winner = i === 0;
-      const toId = winner ? `ex-${g}-f-${code}` : `ex-${g}-r-${code}`;
-      const arr = winner ? 'advance' : 'rep';
-      const badge = winner
-        ? `<span class="ex-badge">heat-seier <b>${pct(p.heatWin)}</b></span>`
-        : `<span class="ex-badge">A-finale <b>${pct(p.afinal)}</b></span>`;
-      return `<div class="ex-pill${winner?' winner':''}${pickedCls(code)}" id="ex-${g}-h-${code}"
-          data-to="${toId}" data-arrow="${arr}">
+      const top2 = i < 2;
+      const u = utenomRank[code];
+      const advU = top2 ? false : (u <= 6);
+      const semiNo = top2
+        ? (i === 0 ? (hi === 0 ? 1 : 2) : (hi === 2 ? 2 : 1))
+        : (advU ? utenomSemiOf(u) : null);
+      const adv = top2 || advU;
+      const badge = top2
+        ? `<span class="ex-badge">→ Semifinale ${semiNo} · A-finale <b>${pct(p.afinal)}</b></span>`
+        : (advU
+            ? `<span class="ex-badge">tid #${u+6} → Semi ${semiNo} · A-finale <b>${pct(p.afinal)}</b></span>`
+            : `<span class="ex-badge">slått ut · semi ${pct(p.semi)}</span>`);
+      const toAttr = adv ? `data-to="ex-${g}-s${semiNo}-${code}" data-arrow="advance"` : '';
+      return `<div class="ex-pill${top2?' winner':(advU?' advancing':' out')}${pickedCls(code)}" id="ex-${g}-h-${code}" ${toAttr}>
         <span class="ex-pos">${i+1}</span>
         <span class="ex-name">${labelOf(g, code)}${boostMark(g, code)}</span>
         ${badge}
       </div>`;
     }).join('');
     return `<div class="ex-heat" data-g="${g}" data-heat="${hi}">
-      <div class="ex-heat-title">Heat ${String.fromCharCode(65+hi)} · raskeste → A-finale</div>${pills}
+      <div class="ex-heat-title">Heat ${hi+1} · topp-2 direkte til semi · 3.+ via tidsrangering</div>${pills}
     </div>`;
   }).join('');
 
-  const repHtml = exp.repOrder.map((code, i) => {
-    const adv = exp.repAdv.has(code);
-    const p = probs[code];
-    const toAttr = adv ? `data-to="ex-${g}-f-${code}" data-arrow="advance"` : '';
-    const badge = `<span class="ex-badge">A-finale ${adv?'<b>':''}${pct(p.afinal)}${adv?'</b>':''}</span>`;
-    return `<div class="ex-pill ${adv?'advancing':'out'}${pickedCls(code)}" id="ex-${g}-r-${code}" ${toAttr}>
-      <span class="ex-pos">${i+1}</span>
-      <span class="ex-name">${labelOf(g, code)}${boostMark(g, code)}</span>
-      ${badge}
+  function semiHtml(semiNo, order){
+    const pills = order.map((code, i) => {
+      const adv = i < 3;
+      const p = probs[code];
+      const toAttr = adv ? `data-to="ex-${g}-f-${code}" data-arrow="advance"` : '';
+      const origin = heatPlace[code] || '';
+      const badge = adv
+        ? `<span class="ex-badge">${origin} → A-finale <b>${pct(p.afinal)}</b></span>`
+        : `<span class="ex-badge">${origin} · slått ut</span>`;
+      return `<div class="ex-pill ${adv?'advancing':'out'}${pickedCls(code)}" id="ex-${g}-s${semiNo}-${code}" ${toAttr}>
+        <span class="ex-pos">${i+1}</span>
+        <span class="ex-name">${labelOf(g, code)}${boostMark(g, code)}</span>
+        ${badge}
+      </div>`;
+    }).join('');
+    return `<div class="ex-heat">
+      <div class="ex-heat-title">Semifinale ${semiNo} · topp-3 → A-finale</div>${pills}
     </div>`;
-  }).join('');
+  }
+  const semisHtml = semiHtml(1, exp.sf1Order) + semiHtml(2, exp.sf2Order);
+
+  const utenomTableHtml = `<div class="ex-utenom">
+    <div class="ex-utenom-title">Utenom-rangering · 3.+ plasser fra alle heat</div>
+    <div class="ex-utenom-sub">Båtene som ikke ble topp-2 sammenlignes på tvers av heatene. Topp-6 går til semi, snake-fordelt: u1→S2, u2→S1, u3→S1, u4→S2, u5→S2, u6→S1.</div>
+    ${exp.utenomOrder.map((code, i) => {
+      const adv = i < 6;
+      const semiNo = adv ? utenomSemiOf(i+1) : null;
+      const dest = adv ? `→ Semi ${semiNo}` : 'slått ut';
+      return `<div class="ex-utenom-row${adv?'':' out'}${pickedCls(code)}">
+        <span class="ex-utenom-rank">u${i+1}</span>
+        <span class="ex-utenom-name">${labelOf(g, code)}</span>
+        <span class="ex-utenom-dest">${dest}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
 
   const finalHtml = exp.finalOrder.map((code, i) => {
     const p = probs[code];
@@ -709,12 +786,12 @@ function renderFlow(g, containerId, title){
       <div class="ex-flow" id="flow-${g}">
         <svg class="ex-arrows" xmlns="http://www.w3.org/2000/svg"></svg>
         <div class="ex-col">
-          <div class="ex-col-title">Offisiell trekning</div>
+          <div class="ex-col-title">Heat</div>
           ${heatsHtml}
         </div>
         <div class="ex-col">
-          <div class="ex-col-title">Oppsamling · 3 raskeste → A-finale</div>
-          ${repHtml}
+          <div class="ex-col-title">Semifinaler</div>
+          ${semisHtml}
         </div>
         <div class="ex-col">
           <div class="ex-col-title">A-finale</div>
@@ -722,10 +799,9 @@ function renderFlow(g, containerId, title){
         </div>
       </div>
       <div class="ex-legend">
-        <span><svg width="22" height="6" style="vertical-align:middle"><path d="M 0 3 L 22 3" stroke="#0b5394" stroke-width="2"/></svg> går videre</span>
-        <span><svg width="22" height="6" style="vertical-align:middle"><path d="M 0 3 L 22 3" stroke="#a8a296" stroke-width="1.5" opacity="0.5"/></svg> til Oppsamling</span>
-        <span><span style="display:inline-block;width:10px;height:10px;background:#fff;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:2px;vertical-align:middle"></span> går til A-finalen</span>
-        <span style="opacity:.55;text-decoration:line-through">slått ut</span> i Oppsamling
+        <span><b>Format:</b> Topp-2 i hvert heat går rett til semi (plass #1–#6). 3.+plass-båtene rangeres deretter på tid på tvers av heatene som #7, #8, … Topp-6 av disse (#7–#12) går også til semi, snake-fordelt: #7→S2, #8→S1, #9→S1, #10→S2, #11→S2, #12→S1. Topp-3 i hver semi går til A-finalen.</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#fff;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:2px;vertical-align:middle"></span> går videre</span>
+        <span style="opacity:.55;text-decoration:line-through">slått ut</span>
         <span class="boost-mark pos">↑ +1</span> = sterkere enn i fjor
         <span class="boost-mark neg">↓ −1</span> = svakere enn i fjor
         <span style="color:var(--muted)">%-tall = sannsynlighet fra ${NSIM.toLocaleString()} simuleringer</span>
